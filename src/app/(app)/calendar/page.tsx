@@ -113,7 +113,7 @@ export default function CalendarPage() {
                             toast.success("Event deleted");
                           }
                         }}
-                        className={`block w-full rounded text-left px-1.5 py-0.5 text-[10px] truncate hover:opacity-80 ${typeColor[e.type]}`}
+                        className={`block w-full rounded text-left px-1.5 py-0.5 text-[10px] truncate hover:opacity-80 ${typeColor[e.type as keyof typeof typeColor]}`}
                       >
                         {e.time} · {e.title}
                       </button>
