@@ -1,36 +1,126 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Estata CRM
 
-## Getting Started
+A modern, full-featured real estate CRM. Built with Next.js 16, Drizzle ORM, SQLite, and Tailwind CSS.
 
-First, run the development server:
+## Features
+
+**CRM**
+- Leads, Deals, Listings, Contacts with full CRUD, search, filters, sort
+- Lead scoring (Cold / Warm / Hot / Burning) with rationale breakdown
+- Lead → Listing matching by budget and city
+- Tags, custom fields, saved views
+
+**Operations**
+- Showings with feedback and ratings
+- Open houses with attendee sign-in (auto-creates leads)
+- Commissions tracker (GCI, splits, payouts)
+- Documents with multi-signer e-sign flow
+
+**Communications**
+- Unified Inbox: Email / SMS / Call / WhatsApp threads
+- Activity feed across the whole workspace
+- Comments + @mentions on leads / deals / listings
+
+**Marketing**
+- Campaigns with metrics
+- Multi-step Sequences (drip campaigns)
+- Microsite editor with live preview
+- Public lead capture forms with embed code
+- Buyer/Seller portal
+
+**Sales analytics**
+- Dashboard with stats and pipeline performance chart
+- Sales forecasting (weighted by stage probability)
+- Goal tracking and source conversion analysis
+- Top agents leaderboard
+
+**System**
+- Real authentication (signup / login / sessions via JWT cookies)
+- Multi-tenant (organization isolation)
+- Integrations toggles (Zillow, MLS, DocuSign, Slack, Twilio, etc.)
+- Automation rules
+- Tasks and Calendar
+- Plan management (Starter / Pro / Enterprise) with billing
+- AI Copilot floating assistant
+- PWA-ready
+
+## Tech stack
+
+- **Frontend**: Next.js 16 (App Router) + React 19 + Tailwind CSS v4 + Radix UI + Lucide icons
+- **Backend**: Server Actions + JWT sessions + bcrypt
+- **Database**: SQLite via Drizzle ORM (easy migration path to Postgres / Turso)
+- **State**: Zustand (UI cache, server is source of truth)
+- **Charts**: Recharts
+- **Toasts**: Sonner
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20.9+
+- npm
+
+### Setup
 
 ```bash
+# Install dependencies
+npm install
+
+# Push the schema to a local SQLite database
+npm run db:push
+
+# (Optional) Seed a demo workspace
+npm run db:seed
+
+# Start the dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Demo credentials
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+If you ran `npm run db:seed`:
 
-## Learn More
+- **Email**: `tl@tl.com`
+- **Password**: `12345678`
 
-To learn more about Next.js, take a look at the following resources:
+Or create a fresh account at `/register` — your workspace will be auto-seeded with sample data.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Environment variables
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For production, set:
 
-## Deploy on Vercel
+```bash
+JWT_SECRET=<a-random-32-char-secret>
+DATABASE_URL=<path-or-connection-string>
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The local default uses `./estata.db`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project structure
+
+```
+src/
+├── app/                     # Next.js routes (App Router)
+│   ├── (app)/               # Authenticated app pages
+│   ├── (auth)/              # Login / Register
+│   └── onboarding/          # Plan selection
+├── components/
+│   ├── ui/                  # Primitives (Button, Card, Dialog, ...)
+│   ├── dialogs/             # Form dialogs (Lead, Deal, Listing, ...)
+│   ├── layout/              # Sidebar, topbar, copilot, hydration
+│   └── common/              # Tables, charts, tag picker, ...
+├── lib/
+│   ├── db/                  # Drizzle schema + client
+│   ├── actions/             # Server actions (auth + CRM)
+│   ├── auth.ts              # Sessions, JWT, password hashing
+│   ├── store.ts             # Zustand store + optimistic updates
+│   ├── types.ts             # Shared types
+│   └── scoring.ts           # Lead scoring + listing matching
+└── proxy.ts                 # Auth middleware (Next.js 16 "proxy")
+```
+
+## License
+
+Private — all rights reserved.
