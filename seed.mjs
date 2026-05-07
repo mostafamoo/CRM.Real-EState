@@ -1,27 +1,40 @@
-// Seed a demo workspace. Run: `node seed.mjs`
-import Database from "better-sqlite3";
+// Seed a demo workspace.
+// Usage:
+//   node seed.mjs                                            # local file (./estata.db)
+//   TURSO_DATABASE_URL=... TURSO_AUTH_TOKEN=... node seed.mjs # Turso
+import { createClient } from "@libsql/client";
 import bcrypt from "bcryptjs";
 import { randomUUID } from "crypto";
 
-const db = new Database("estata.db");
-db.pragma("foreign_keys = ON");
+const url = process.env.TURSO_DATABASE_URL || "file:./estata.db";
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
+const client = createClient({ url, authToken });
+
 const nid = (p) => `${p}-${randomUUID().slice(0, 8)}`;
 const now = Date.now();
 
-const existingOrgs = db.prepare("SELECT id FROM organizations WHERE name = ?").all("Bay Realty Group");
-for (const { id } of existingOrgs) db.prepare("DELETE FROM organizations WHERE id = ?").run(id);
-db.prepare("DELETE FROM users WHERE email = ?").run("tl@tl.com");
+const exec = (sql, args = []) => client.execute({ sql, args });
+
+console.log(`Connecting to ${url.startsWith("libsql:") ? "Turso" : "local SQLite"}…`);
+
+const oldOrgs = await exec("SELECT id FROM organizations WHERE name = ?", ["Bay Realty Group"]);
+for (const row of oldOrgs.rows) await exec("DELETE FROM organizations WHERE id = ?", [row.id]);
+await exec("DELETE FROM users WHERE email = ?", ["tl@tl.com"]);
 
 const orgId = nid("org");
 const userId = nid("usr");
 const passwordHash = await bcrypt.hash("12345678", 10);
 
-db.prepare(`INSERT INTO organizations (id, name, city, state, created_at) VALUES (?, ?, ?, ?, ?)`)
-  .run(orgId, "Bay Realty Group", "San Francisco", "CA", now);
-
-db.prepare(`INSERT INTO users (id, organization_id, email, password_hash, first_name, last_name, title, license, bio, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-  .run(userId, orgId, "tl@tl.com", passwordHash, "Taylor", "Lambert", "Senior Broker", "DRE 02118430",
-       "15+ years selling premium homes across the Bay Area.", "owner", now);
+await exec(
+  `INSERT INTO organizations (id, name, city, state, created_at) VALUES (?, ?, ?, ?, ?)`,
+  [orgId, "Bay Realty Group", "San Francisco", "CA", now]
+);
+await exec(
+  `INSERT INTO users (id, organization_id, email, password_hash, first_name, last_name, title, license, bio, role, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  [userId, orgId, "tl@tl.com", passwordHash, "Taylor", "Lambert", "Senior Broker", "DRE 02118430",
+    "15+ years selling premium homes across the Bay Area.", "owner", now]
+);
 
 const agentName = "Taylor Lambert";
 
@@ -38,8 +51,10 @@ const listingIds = [];
 for (const l of listings) {
   const id = nid("MLS");
   listingIds.push(id);
-  db.prepare(`INSERT INTO listings (id, organization_id, address, city, state, price, beds, baths, sqft, status, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, orgId, l.address, l.city, l.state, l.price, l.beds, l.baths, l.sqft, l.status, agentName, now);
+  await exec(
+    `INSERT INTO listings (id, organization_id, address, city, state, price, beds, baths, sqft, status, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, orgId, l.address, l.city, l.state, l.price, l.beds, l.baths, l.sqft, l.status, agentName, now]
+  );
 }
 
 const leads = [
@@ -58,8 +73,10 @@ const leadIds = [];
 for (const l of leads) {
   const id = nid("L");
   leadIds.push(id);
-  db.prepare(`INSERT INTO leads (id, organization_id, name, email, phone, source, status, budget, city, agent_id, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(id, orgId, l.name, l.email, l.phone, l.source, l.status, l.budget, l.city, userId, agentName, now);
+  await exec(
+    `INSERT INTO leads (id, organization_id, name, email, phone, source, status, budget, city, agent_id, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, orgId, l.name, l.email, l.phone, l.source, l.status, l.budget, l.city, userId, agentName, now]
+  );
 }
 
 const deals = [
@@ -71,8 +88,10 @@ const deals = [
   { title: "Lakeside 3BR", client: "Ava Mendoza", property: "97 Cedar Trail, Austin TX", amount: 905000, stage: "Negotiation", closeDate: "2026-05-22" },
 ];
 for (const d of deals) {
-  db.prepare(`INSERT INTO deals (id, organization_id, title, client, property, amount, stage, close_date, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("D"), orgId, d.title, d.client, d.property, d.amount, d.stage, d.closeDate, agentName, now);
+  await exec(
+    `INSERT INTO deals (id, organization_id, title, client, property, amount, stage, close_date, agent_name, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("D"), orgId, d.title, d.client, d.property, d.amount, d.stage, d.closeDate, agentName, now]
+  );
 }
 
 const contacts = [
@@ -81,8 +100,10 @@ const contacts = [
   { name: "Marcus Tan", role: "Home Inspector", company: "BlueDoor Inspections", email: "marcus@bluedoor.io", phone: "+1 305-555-0107", city: "Miami" },
 ];
 for (const c of contacts) {
-  db.prepare(`INSERT INTO contacts (id, organization_id, name, role, company, email, phone, city, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("C"), orgId, c.name, c.role, c.company, c.email, c.phone, c.city, now);
+  await exec(
+    `INSERT INTO contacts (id, organization_id, name, role, company, email, phone, city, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("C"), orgId, c.name, c.role, c.company, c.email, c.phone, c.city, now]
+  );
 }
 
 const tasks = [
@@ -91,9 +112,11 @@ const tasks = [
   { title: "Follow up with Aiden Park", due: "2026-05-10", priority: "Medium", status: "To do" },
   { title: "Counter-offer review with Hannah", due: "2026-05-08", priority: "High", status: "Done" },
 ];
-for (const t of tasks) {
-  db.prepare(`INSERT INTO tasks (id, organization_id, title, due, priority, assignee_name, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("T"), orgId, t.title, t.due, t.priority, agentName, t.status, now);
+for (const tk of tasks) {
+  await exec(
+    `INSERT INTO tasks (id, organization_id, title, due, priority, assignee_name, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("T"), orgId, tk.title, tk.due, tk.priority, agentName, tk.status, now]
+  );
 }
 
 const campaigns = [
@@ -102,8 +125,10 @@ const campaigns = [
   { name: "Buyer Newsletter — May", type: "Email", status: "Scheduled", sent: 0, opened: 0, clicked: 0, sentDate: "2026-05-05" },
 ];
 for (const c of campaigns) {
-  db.prepare(`INSERT INTO campaigns (id, organization_id, name, type, status, sent, opened, clicked, sent_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("CMP"), orgId, c.name, c.type, c.status, c.sent, c.opened, c.clicked, c.sentDate, now);
+  await exec(
+    `INSERT INTO campaigns (id, organization_id, name, type, status, sent, opened, clicked, sent_date, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("CMP"), orgId, c.name, c.type, c.status, c.sent, c.opened, c.clicked, c.sentDate, now]
+  );
 }
 
 const automations = [
@@ -111,8 +136,10 @@ const automations = [
   { name: "Lead inactive 7d → Re-engage email", trigger: "Inactivity", action: "Send email", active: 1, runs: 128 },
 ];
 for (const a of automations) {
-  db.prepare(`INSERT INTO automations (id, organization_id, name, trigger, action, active, runs, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("AUT"), orgId, a.name, a.trigger, a.action, a.active, a.runs, now);
+  await exec(
+    `INSERT INTO automations (id, organization_id, name, trigger, action, active, runs, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("AUT"), orgId, a.name, a.trigger, a.action, a.active, a.runs, now]
+  );
 }
 
 const tags = [
@@ -120,7 +147,9 @@ const tags = [
   { name: "VIP", color: "bg-warning/20 text-warning-foreground" },
   { name: "Investor", color: "bg-primary/15 text-primary" },
 ];
-for (const t of tags) db.prepare(`INSERT INTO tags (id, organization_id, name, color) VALUES (?, ?, ?, ?)`).run(nid("TAG"), orgId, t.name, t.color);
+for (const t of tags) {
+  await exec(`INSERT INTO tags (id, organization_id, name, color) VALUES (?, ?, ?, ?)`, [nid("TAG"), orgId, t.name, t.color]);
+}
 
 const integrations = [
   { name: "Zillow", category: "Lead Sources", description: "Sync leads from Zillow.", connected: 1, color: "from-sky-500 to-blue-600" },
@@ -131,8 +160,10 @@ const integrations = [
   { name: "Slack", category: "Communication", description: "Team notifications.", connected: 0, color: "from-purple-500 to-fuchsia-600" },
 ];
 for (const i of integrations) {
-  db.prepare(`INSERT INTO integrations (id, organization_id, name, category, description, connected, color) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("INT"), orgId, i.name, i.category, i.description, i.connected, i.color);
+  await exec(
+    `INSERT INTO integrations (id, organization_id, name, category, description, connected, color) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [nid("INT"), orgId, i.name, i.category, i.description, i.connected, i.color]
+  );
 }
 
 for (let i = 0; i < 3; i++) {
@@ -140,50 +171,64 @@ for (let i = 0; i < 3; i++) {
   const subject = ["Re: 318 Spruce Ln", "Tour confirmation", "Offer counter"][i];
   const channel = ["email", "sms", "email"][i];
   const at = now - 1000 * 60 * 60 * (i + 1);
-  db.prepare(`INSERT INTO threads (id, organization_id, lead_id, subject, channel, last_message_at, unread) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run(tid, orgId, leadIds[i], subject, channel, at, i === 1 ? 0 : 1);
-  db.prepare(`INSERT INTO messages (id, organization_id, thread_id, channel, direction, lead_id, from_address, to_address, subject, body, read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(nid("M"), orgId, tid, channel, "inbound", leadIds[i],
+  await exec(
+    `INSERT INTO threads (id, organization_id, lead_id, subject, channel, last_message_at, unread) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [tid, orgId, leadIds[i], subject, channel, at, i === 1 ? 0 : 1]
+  );
+  await exec(
+    `INSERT INTO messages (id, organization_id, thread_id, channel, direction, lead_id, from_address, to_address, subject, body, read, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [nid("M"), orgId, tid, channel, "inbound", leadIds[i],
       leads[i].email, "you", subject,
       ["Hi! Could we schedule a tour?", "Confirmed for Friday.", "Can we discuss the counter?"][i],
-      i === 1 ? 1 : 0, at);
+      i === 1 ? 1 : 0, at]
+  );
 }
 
-db.prepare(`INSERT INTO activity (id, organization_id, kind, actor, title, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-  .run(nid("AC"), orgId, "lead.created", agentName, "Workspace ready", "Welcome to Estata", now);
+await exec(
+  `INSERT INTO activity (id, organization_id, kind, actor, title, detail, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  [nid("AC"), orgId, "lead.created", agentName, "Workspace ready", "Welcome to Estata", now]
+);
 
-db.prepare(`INSERT INTO microsite (organization_id, config, updated_at) VALUES (?, ?, ?)`).run(orgId, JSON.stringify({
-  domain: "bay-realty",
-  tagline: "Real Estate · San Francisco Bay Area",
-  heroHeadline: "Find your dream home in the Bay Area",
-  heroSubheadline: "Curated listings from top agents.",
-  heroCtaPrimary: "Browse listings",
-  heroCtaSecondary: "Contact us",
-  heroBackgroundStyle: "gradient-primary",
-  about: "Bay Realty Group is a boutique real-estate brokerage with 15+ years experience.",
-  contactEmail: "hello@bay-realty.com",
-  contactPhone: "+1 415-555-0100",
-  contactAddress: "450 Mission St #800, San Francisco, CA 94105",
-  testimonials: [
-    { id: "TS-1", author: "Hannah Carlton", role: "Bought a home", body: "Made our first home purchase feel effortless.", rating: 5 },
-    { id: "TS-2", author: "Ethan Brooks", role: "Sold a home", body: "Sold above asking in 9 days.", rating: 5 },
-  ],
-  featuredListingIds: listingIds.slice(0, 3),
-  sections: { hero: true, listings: true, about: true, testimonials: true, contact: true, stats: false },
-  theme: { primary: "#0d9488", accent: "#fbbf24" },
-  pageViews: 12418, clicks: 2103, formSubmissions: 184,
-  published: true, lastPublishedAt: now,
-}), now);
+await exec(
+  `INSERT INTO microsite (organization_id, config, updated_at) VALUES (?, ?, ?)`,
+  [orgId, JSON.stringify({
+    domain: "bay-realty",
+    tagline: "Real Estate · San Francisco Bay Area",
+    heroHeadline: "Find your dream home in the Bay Area",
+    heroSubheadline: "Curated listings from top agents.",
+    heroCtaPrimary: "Browse listings",
+    heroCtaSecondary: "Contact us",
+    heroBackgroundStyle: "gradient-primary",
+    about: "Bay Realty Group is a boutique real-estate brokerage with 15+ years experience.",
+    contactEmail: "hello@bay-realty.com",
+    contactPhone: "+1 415-555-0100",
+    contactAddress: "450 Mission St #800, San Francisco, CA 94105",
+    testimonials: [
+      { id: "TS-1", author: "Hannah Carlton", role: "Bought a home", body: "Made our first home purchase feel effortless.", rating: 5 },
+      { id: "TS-2", author: "Ethan Brooks", role: "Sold a home", body: "Sold above asking in 9 days.", rating: 5 },
+    ],
+    featuredListingIds: listingIds.slice(0, 3),
+    sections: { hero: true, listings: true, about: true, testimonials: true, contact: true, stats: false },
+    theme: { primary: "#0d9488", accent: "#fbbf24" },
+    pageViews: 12418, clicks: 2103, formSubmissions: 184,
+    published: true, lastPublishedAt: now,
+  }), now]
+);
 
-db.prepare(`INSERT INTO subscriptions (organization_id, plan, price, cycle, seats, status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-  .run(orgId, "Pro", 1490, "monthly", 10, "active",
-       JSON.stringify({ brand: "Visa", last4: "4242", expMonth: 9, expYear: 2027 }));
+await exec(
+  `INSERT INTO subscriptions (organization_id, plan, price, cycle, seats, status, payment_method) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+  [orgId, "Pro", 1490, "monthly", 10, "active",
+    JSON.stringify({ brand: "Visa", last4: "4242", expMonth: 9, expYear: 2027 })]
+);
 
 for (let i = 4; i >= 1; i--) {
-  db.prepare(`INSERT INTO invoices (id, organization_id, date, amount, status, description) VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(nid("INV"), orgId, `2026-0${i}-01`, 1490, "Paid", `Pro plan · 2026-0${i}`);
+  await exec(
+    `INSERT INTO invoices (id, organization_id, date, amount, status, description) VALUES (?, ?, ?, ?, ?, ?)`,
+    [nid("INV"), orgId, `2026-0${i}-01`, 1490, "Paid", `Pro plan · 2026-0${i}`]
+  );
 }
 
 console.log("✓ Seeded demo workspace");
 console.log("  Email: tl@tl.com");
 console.log("  Password: 12345678");
+process.exit(0);

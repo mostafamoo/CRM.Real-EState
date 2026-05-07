@@ -1,14 +1,20 @@
 import "server-only";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import Database from "better-sqlite3";
-import path from "path";
+import { drizzle } from "drizzle-orm/libsql";
+import { createClient } from "@libsql/client";
 import * as schema from "./schema";
 
-const dbPath = process.env.DATABASE_URL ?? path.join(process.cwd(), "estata.db");
-const sqlite = new Database(dbPath);
-sqlite.pragma("journal_mode = WAL");
-sqlite.pragma("foreign_keys = ON");
+const url =
+  process.env.TURSO_DATABASE_URL ||
+  process.env.DATABASE_URL ||
+  "file:./estata.db";
 
-export const db = drizzle(sqlite, { schema });
+const authToken = process.env.TURSO_AUTH_TOKEN;
+
+const client = createClient({
+  url,
+  authToken,
+});
+
+export const db = drizzle(client, { schema });
 
 export * as t from "./schema";
