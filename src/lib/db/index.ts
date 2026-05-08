@@ -6,7 +6,7 @@ import * as schema from "./schema";
 const url =
   process.env.TURSO_DATABASE_URL ||
   process.env.DATABASE_URL ||
-  "file:./estata.db";
+  (process.env.VERCEL ? "libsql://dummy-url.turso.io" : "file:./estata.db");
 
 const authToken = process.env.TURSO_AUTH_TOKEN;
 
