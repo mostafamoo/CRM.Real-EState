@@ -24,7 +24,7 @@ export default function RegisterPage() {
     const result = await signupAction(form);
     if (result.ok) {
       toast.success("Account created — welcome!");
-      router.push("/dashboard");
+      router.push("/onboarding");
       router.refresh();
     } else {
       toast.error(result.error);
