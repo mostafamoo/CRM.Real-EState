@@ -29,6 +29,9 @@ export function SidebarNav() {
   const pathname = usePathname();
   const inboxUnread = useCRM((s) => s.threads.reduce((sum, t) => sum + t.unread, 0));
   const docsCount = useCRM((s) => s.documents.length);
+  const plan = useCRM((s) => s.subscription?.plan) || "Growth";
+
+  const isSolo = plan === "Starter";
 
   const sections: NavSection[] = [
     {
@@ -54,7 +57,7 @@ export function SidebarNav() {
       items: [
         { label: "Showings", href: "/showings", icon: KeyRound },
         { label: "Open Houses", href: "/open-houses", icon: DoorOpen },
-        { label: "Commissions", href: "/commissions", icon: Wallet },
+        ...(isSolo ? [] : [{ label: "Commissions", href: "/commissions", icon: Wallet }]),
         { label: "Documents", href: "/documents", icon: FolderOpen, badge: docsCount > 0 ? docsCount : undefined },
       ],
     },
@@ -82,6 +85,7 @@ export function SidebarNav() {
       items: [
         { label: "Integrations", href: "/integrations", icon: Plug },
         { label: "Settings", href: "/settings/profile", icon: Settings },
+        ...(isSolo ? [] : [{ label: "Team Settings", href: "/settings/team", icon: Building2 }]),
       ],
     },
   ];

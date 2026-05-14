@@ -230,9 +230,10 @@ const emptyMicrosite: MicrositeConfig = {
 };
 
 export const PLANS: Record<Plan, { price: number; seats: number; features: string[] }> = {
-  Starter: { price: 49, seats: 1, features: ["Up to 250 leads", "Basic email automations", "1 user", "Community support"] },
-  Pro: { price: 1490, seats: 10, features: ["Unlimited leads, deals, and listings", "Custom microsite + custom domain", "Up to 10 users", "Email & SMS automations", "Team analytics and reporting", "Priority support"] },
-  Enterprise: { price: 4990, seats: 999, features: ["Everything in Pro", "SSO + API access", "Unlimited users", "Dedicated CSM", "Custom contracts and SLAs"] },
+  Starter: { price: 3900, seats: 1, features: ["Lead Scoring", "Buyer Match Engine", "Automation Engine", "Drip Campaigns", "Productivity Reports"] },
+  Growth: { price: 5800, seats: 10, features: ["Everything in Starter", "Add team members", "Team analytics"] },
+  Brokerage: { price: 11900, seats: 50, features: ["Everything in Growth", "Multi-team support", "Advanced RBAC", "Agent analytics", "Deal reports"] },
+  Enterprise: { price: 49900, seats: 999, features: ["Everything in Brokerage", "Custom API", "Dedicated CSM"] },
 };
 
 const initialState: Omit<CRMState, "hydrate" | "patch" | "resetAll" | keyof Mutations> = {
@@ -245,7 +246,7 @@ const initialState: Omit<CRMState, "hydrate" | "patch" | "resetAll" | keyof Muta
   tags: [], leadTags: {}, showings: [], openHouses: [], commissions: [],
   forms: [], sequences: [], savedViews: [], notifications: [],
   microsite: emptyMicrosite,
-  subscription: { plan: "Pro", price: 1490, cycle: "monthly", seats: 10, status: "active", features: PLANS.Pro.features },
+  subscription: { plan: "Growth", price: 5800, cycle: "monthly", seats: 10, status: "active", features: PLANS.Growth.features },
   paymentMethod: { brand: "Visa", last4: "0000", expMonth: 1, expYear: 2030 },
   invoices: [],
 };

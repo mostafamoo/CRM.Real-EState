@@ -168,7 +168,7 @@ export type Testimonial = {
 
 export type SectionKey = "hero" | "listings" | "about" | "testimonials" | "contact" | "stats";
 
-export type Plan = "Starter" | "Pro" | "Enterprise";
+export type Plan = "Starter" | "Growth" | "Brokerage" | "Enterprise";
 
 export type Subscription = {
   plan: Plan;
